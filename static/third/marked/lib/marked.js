@@ -782,20 +782,6 @@ InlineLexer.prototype.output = function(src) {
       continue;
     }
 
-    // realm_filters (zulip)
-    var self = this;
-    this.rules.realm_filters.forEach(function (realm_filter) {
-      src = src.replace(realm_filter, function (match) {
-        var groups = Array.prototype.slice.call(arguments, 1);
-        href = self.realm_filter(realm_filter, groups, match);
-        realm_filter_urls[realm_filter_id] = {
-          'href': href,
-          'text': match,
-        };
-        return '[realm_filter:' + realm_filter_id++ + ']';
-      });
-    });
-
     // WARNING: Do not place any parsing logic below this comment.
     // Any parsing logic place after the `text` block below will most
     // likely be silently never executed.
@@ -803,6 +789,25 @@ InlineLexer.prototype.output = function(src) {
     // text
     if (cap = this.rules.text.exec(src)) {
       src = src.substring(cap[0].length);
+
+      // realm_filters (zulip)
+      // Since realm_filters don't have a particular shape, we can't parse
+      // them like other markdown elements. Before escaping the output, we
+      // replace the realm filters with a marker and replace it with actual
+      // links afterwards.
+      var self = this;
+      this.rules.realm_filters.forEach(function (realm_filter) {
+        cap[0] = cap[0].replace(realm_filter, function (match) {
+          var groups = Array.prototype.slice.call(arguments, 1);
+            href = self.realm_filter(realm_filter, groups, match);
+            realm_filter_urls[realm_filter_id] = {
+              'href': href,
+              'text': match,
+          };
+          return '[realm_filter:' + realm_filter_id++ + ']';
+        });
+      });
+
       out += this.renderer.text(escape(this.smartypants(cap[0])));
       continue;
     }
